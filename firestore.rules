@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (required, format: email)
+    //   - dailyGoal: number (required, positive)
+    //   - dailyProtein: number (required, positive)
+    //   - dailyFat: number (required, positive)
+    //   - dailyCarbs: number (required, positive)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: meals
+    // Document ID: {mealId}
+    // Fields:
+    //   - userId: string (required, matches auth.uid)
+    //   - description: string (required, max 500 chars)
+    //   - calories: number (required, positive)
+    //   - timestamp: timestamp (required)
+    //   - confirmed: boolean (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isPositive(val) {
+      return val is number && val > 0;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'dailyGoal', 'dailyProtein', 'dailyFat', 'dailyCarbs', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
+             isPositive(data.dailyGoal) &&
+             isPositive(data.dailyProtein) &&
+             isPositive(data.dailyFat) &&
+             isPositive(data.dailyCarbs) &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidMeal(data) {
+      return data.keys().hasAll(['userId', 'description', 'calories', 'timestamp', 'confirmed']) &&
+             data.userId == request.auth.uid &&
+             data.description is string && data.description.size() > 0 && data.description.size() < 500 &&
+             isPositive(data.calories) &&
+             data.timestamp is timestamp &&
+             data.confirmed is bool;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) &&
+                      request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    match /meals/{mealId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidMeal(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && 
+                      isValidMeal(request.resource.data) &&
+                      request.resource.data.userId == resource.data.userId;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

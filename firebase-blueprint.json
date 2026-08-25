@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "dailyGoal": { "type": "number" },
+        "dailyProtein": { "type": "number" },
+        "dailyFat": { "type": "number" },
+        "dailyCarbs": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "dailyGoal", "dailyProtein", "dailyFat", "dailyCarbs"]
+    },
+    "Meal": {
+      "title": "Meal",
+      "description": "A logged meal with calorie estimate",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "description": { "type": "string" },
+        "calories": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "confirmed": { "type": "boolean" }
+      },
+      "required": ["userId", "description", "calories", "timestamp", "confirmed"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data"
+    },
+    "/meals/{mealId}": {
+      "schema": "Meal",
+      "description": "Individual meal logs"
+    }
+  }
+}

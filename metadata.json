@@ -1,0 +1,5 @@
+{
+  "name": "CalorieBuddy",
+  "description": "An intelligent conversational calorie tracking assistant that uses AI to estimate calories from natural language descriptions.",
+  "requestFramePermissions": []
+}
